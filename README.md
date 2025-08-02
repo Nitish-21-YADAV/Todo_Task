@@ -31,6 +31,13 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 
 ## Deploy on Vercel
 
+
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+## A short note on your approach and thought process
+-> 1.First, I kicked off by setting up a solid foundation—using hooks and state to let users add, update, and delete tasks, making the UI feel alive and    interactive.
+   2. Then, I spiced it up with a theme toggle and filter/sort/search features, giving you that extra flexibility to play around with.
+   3.For the sidebar, I threw in a ref with a click-outside logic, and styled it with CSS variables or inline styles to keep things neat.
+     Lastly, I blended Tailwind with custom CSS to make it responsive and smooth
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
