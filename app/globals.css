@@ -1,9 +1,6 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+
 
 @theme inline {
   --color-background: var(--background);
@@ -11,16 +8,71 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
+:root {
+ --background: #2c2c2c;
+  --foreground: #ededed;
+  --sidebar-bg: #3a3a3a;
+}
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.dark-theme {
+  --background: #2c2c2c;
+  --foreground: #ededed;
+  --sidebar-bg: #3a3a3a;
+}
+
+.light-theme {
+  --background: #ffffff;
+  --foreground: #000000;
+  --sidebar-bg: #f0f0f0;
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  transition: all 0.3s ease;
+  font-family: 'Arial', sans-serif;
+}
+
+input,
+select,
+button {
+  transition: all 0.3s ease;
+}
+
+.toggle-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 24px;
+  padding: 2px;
+  border-radius: 12px;
+  cursor: pointer;
+  background-color: #c7bdbdff;
+  transition: background-color 0.3s ease;
+}
+
+.toggle-button:hover {
+  background-color: #b0a8a8;
+}
+
+.toggle-button svg {
+  color: #ffffff;
+  transition: transform 0.3s ease;
+}
+
+.toggle-button.light {
+  background-color: #000000ff;
+}
+
+.toggle-button.light:hover {
+  background-color: #333333;
+}
+
+.toggle-button.light svg {
+  transform: translateX(8px);
+}
+
+.toggle-button.dark svg {
+  transform: translateX(-8px);
 }

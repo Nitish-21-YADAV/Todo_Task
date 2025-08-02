@@ -1,103 +1,314 @@
-import Image from "next/image";
+'use client';
+
+import { useTodos } from './lib//hook';
+import { useEffect, useRef, useState } from 'react';
+import { v4 as uuidv4 } from 'uuid';
+import { X, Menu, ToggleLeft, ToggleRight } from 'lucide-react';
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const { tasks, addNewTask, updateTask, removeTask } = useTodos();
+  const [open, setOpen] = useState(false);
+  const [isbgDark, setIsbgDark] = useState<'dark' | 'light'>('dark');
+  const sidebarRef = useRef<HTMLDivElement | null>(null);
+  const [prioritystatus, setPrioritystatus] = useState<'Pending' | 'In Progress' | 'Completed'>('Pending');
+  const [formdata, setFormData] = useState({
+    title: '',
+    description: '',
+    status: 'Pending',
+    dueDate: '',
+  });
+  const [priority, setPriority] = useState<'Low' | 'Medium' | 'High'>('Low');
+  const [filterStatus, setFilterStatus] = useState('All');
+  const [filterPriority, setFilterPriority] = useState('All');
+  const [sortBy, setSortBy] = useState('Due Date');
+  const [searchTerm, setSearchTerm] = useState('');
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === 'dueDate' ? new Date(value).toISOString() : value,
+    }));
+  };
+
+  const handleAddTask = () => {
+    if (formdata.title.trim()) {
+      addNewTask({
+        id: uuidv4(),
+        title: formdata.title,
+        description: formdata.description,
+        dueDate: formdata.dueDate,
+        status: prioritystatus,
+        priority,
+      });
+      setFormData({
+        title: '',
+        description: '',
+        status: 'Pending',
+        dueDate: '',
+      });
+    }
+  };
+
+  const handleStatusChange = (taskId: string, newStatus: 'Pending' | 'In Progress' | 'Completed') => {
+    const taskToUpdate = tasks.find((task) => task.id === taskId);
+    if (taskToUpdate) {
+      updateTask({ ...taskToUpdate, status: newStatus });
+    }
+  };
+
+  const handleDeleteTask = (taskId: string) => {
+    removeTask(taskId);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (sidebarRef.current && !sidebarRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [open]);
+
+  const filteredTasks = tasks.filter((task) => {
+    const matchesStatus = filterStatus === 'All' || task.status === filterStatus;
+    const matchesPriority = filterPriority === 'All' || task.priority === filterPriority;
+    const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesStatus && matchesPriority && matchesSearch;
+  });
+
+  const sortedTasks = [...filteredTasks].sort((a, b) => {
+    switch (sortBy) {
+      case 'Due Date':
+        return new Date(a.dueDate || '').getTime() - new Date(b.dueDate || '').getTime();
+      case 'Priority':
+        const priorityOrder = { Low: 0, Medium: 1, High: 2 };
+        return priorityOrder[b.priority] - priorityOrder[a.priority];
+      case 'Status':
+        const statusOrder = { Pending: 0, 'In Progress': 1, Completed: 2 };
+        return statusOrder[a.status] - statusOrder[b.status];
+      default:
+        return 0;
+    }
+  });
+
+  const handleToggleTheme = () => {
+    const newTheme = isbgDark === 'dark' ? 'light' : 'dark';
+    setIsbgDark(newTheme);
+    console.log('Toggling to:', newTheme);
+  };
+
+  const getThemeStyles = () => {
+    if (isbgDark === 'dark') {
+      return {
+        backgroundColor: '#2c2c2c',
+        foregroundColor: '#ededed',
+        sidebarBg: '#3a3a3a',
+      };
+    } else {
+      return {
+        backgroundColor: '#ffffff',
+        foregroundColor: '#000000',
+        sidebarBg: '#f0f0f0',
+      };
+    }
+  };
+
+  const themeStyles = getThemeStyles();
+
+  return (
+    <div className="lg:h-[100vh] sm:h-full w-full container mx-auto p-4 flex flex-col justify-center " style={{backgroundColor: themeStyles.backgroundColor,  color: themeStyles.foregroundColor }}>
+      <h1 className="text-2xl font-bold mb-4 text-center" style={{ color: themeStyles.foregroundColor }}>Todo List</h1>
+      <div className="h-[100%] flex flex-col lg:flex-row items-center justify-evenly gap-6">
+        <div className="w-full lg:w-1/2 border py-20 px-4 rounded" style={{ borderRadius: '100px', backdropFilter: 'blur(10px)', backgroundColor: themeStyles.backgroundColor }}>
+          <h1 style={{ fontSize: '4rem', textAlign: 'center', color: themeStyles.foregroundColor }}>Have a Plan?</h1>
+          <div className="flex flex-col items-center gap-3">
+            <div className="flex flex-col p-3 w-full">
+              <input
+                type="text"
+                name="title"
+                value={formdata.title}
+                onChange={handleInputChange}
+                className="py-2 px-4 border-b focus:outline-none"
+                placeholder="Add Title"
+                style={{ backgroundColor: themeStyles.backgroundColor, color: themeStyles.foregroundColor, borderColor: themeStyles.foregroundColor }}
+              />
+              <input
+                type="text"
+                name="description"
+                value={formdata.description}
+                onChange={handleInputChange}
+                className="py-2 px-4 focus:outline-none"
+                placeholder="Add Description"
+                style={{ backgroundColor: themeStyles.backgroundColor, color: themeStyles.foregroundColor, borderColor: themeStyles.foregroundColor }}
+              />
+            </div>
+            <input
+              type="date"
+              name="dueDate"
+              value={formdata.dueDate ? new Date(formdata.dueDate).toISOString().split('T')[0] : ''}
+              onChange={handleInputChange}
+              className="p-2 border rounded w-full focus:outline-none"
+              style={{ backgroundColor: themeStyles.backgroundColor, color: themeStyles.foregroundColor, borderColor: themeStyles.foregroundColor }}
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            <select
+              value={priority}
+              onChange={(e) => setPriority(e.target.value as 'Low' | 'Medium' | 'High')}
+              className="p-2 border rounded w-full focus:outline-none"
+              style={{ backgroundColor: themeStyles.backgroundColor, color: themeStyles.foregroundColor, borderColor: themeStyles.foregroundColor }}
+            >
+              <option value="Low">Low</option>
+              <option value="Medium">Medium</option>
+              <option value="High">High</option>
+            </select>
+            <button
+              onClick={handleAddTask}
+              className="p-2 bg-blue-500 text-white rounded w-full hover:bg-blue-600 transition"
+              style={{ backgroundColor: isbgDark === 'dark' ? '#3b82f6' : '#1d4ed8' }}
+            >
+              Add
+            </button>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        <div className="w-full h-[95%] lg:w-1/2 space-y-4 p-5 overflow-scroll border" style={{ backgroundColor: themeStyles.backgroundColor, color: themeStyles.foregroundColor }}>
+          <div className="w-full p-2 rounded" style={{ backgroundColor: isbgDark === 'dark' ? '#4a4a4a' : '#e0e0e0' }}>
+            <header className="w-full flex justify-between items-center relative">
+              <button
+                onClick={() => setOpen(!open)}
+                className="p-2 text-gray-700 focus:outline-none rounded-full hover:bg-gray-200 transition"
+                style={{ color: themeStyles.foregroundColor }}
+              >
+                {open ? <X size={24} /> : <Menu size={24} />}
+              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleToggleTheme}
+                  className="p-2 rounded-full focus:outline-none toggle-button"
+                  style={{
+                    backgroundColor: isbgDark === 'dark' ? '#c7bdbdff' : '#000000ff',
+                    transition: 'background-color 0.3s',
+                  }}
+                >
+                  {isbgDark === 'dark' ? <ToggleLeft size={20} /> : <ToggleRight size={20} />}
+                </button>
+                <input
+                  type="search"
+                  placeholder="Search by title"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="p-2 rounded border focus:outline-none w-full max-w-xs"
+                  style={{ backgroundColor: themeStyles.backgroundColor, color: themeStyles.foregroundColor, borderColor: themeStyles.foregroundColor }}
+                />
+              </div>
+              {open && (
+                <div
+                  ref={sidebarRef}
+                  className="absolute top-10 left-0 w-52 p-4 rounded shadow-lg z-10"
+                  style={{ backgroundColor: themeStyles.sidebarBg, color: themeStyles.foregroundColor, border: `1px solid ${isbgDark === 'dark' ? '#555' : '#ccc'}` }}
+                >
+                  <h2 className="text-lg font-bold mb-2">Filter</h2>
+                  <div className="mb-4">
+                    <h3 className="font-bold mb-2">By Status</h3>
+                    <select
+                      value={filterStatus}
+                      onChange={(e) => setFilterStatus(e.target.value)}
+                      className="w-full p-1 border rounded focus:outline-none"
+                      style={{ backgroundColor: themeStyles.sidebarBg, color: themeStyles.foregroundColor, borderColor: themeStyles.foregroundColor }}
+                    >
+                      <option value="All">All</option>
+                      <option value="Pending">Pending</option>
+                      <option value="In Progress">In Progress</option>
+                      <option value="Completed">Completed</option>
+                    </select>
+                    <h3 className="font-bold mt-2 mb-2">By Priority</h3>
+                    <select
+                      value={filterPriority}
+                      onChange={(e) => setFilterPriority(e.target.value)}
+                      className="w-full p-1 border rounded focus:outline-none"
+                      style={{ backgroundColor: themeStyles.sidebarBg, color: themeStyles.foregroundColor, borderColor: themeStyles.foregroundColor }}
+                    >
+                      <option value="All">All</option>
+                      <option value="Low">Low</option>
+                      <option value="Medium">Medium</option>
+                      <option value="High">High</option>
+                    </select>
+                  </div>
+                  <h3 className="font-bold mb-2">Sort</h3>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="w-full p-1 border rounded focus:outline-none"
+                    style={{ backgroundColor: themeStyles.sidebarBg, color: themeStyles.foregroundColor, borderColor: themeStyles.foregroundColor }}
+                  >
+                    <option value="Due Date">Due Date</option>
+                    <option value="Priority">Priority</option>
+                    <option value="Status">Status</option>
+                  </select>
+                </div>
+              )}
+            </header>
+          </div>
+          <div className="w-full max-w-3xl mx-auto px-4 mt-6">
+            {tasks.length === 0 ? (
+              <div className="flex flex-col justify-center items-center h-[50vh]">
+                <h1 className="text-center text-xl font-bold" style={{ color: themeStyles.foregroundColor, fontSize: '4rem' }}>Add Task</h1>
+              </div>
+            ) : (
+              <>
+                <h1 className="text-center font-bold text-2xl mb-4" style={{ color: themeStyles.foregroundColor }}>Your Tasks</h1>
+                <ul className="space-y-4">
+                  {sortedTasks.map((task) => (
+                    <li
+                      key={task.id}
+                      className="border rounded-lg p-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3"
+                      style={{ backgroundColor: themeStyles.backgroundColor, color: themeStyles.foregroundColor }}
+                    >
+                      <div className="flex flex-col text-sm sm:text-base">
+                        <strong className="mb-1">{task.title}</strong>
+                        <span className="mb-1">{task.description}</span>
+                        <span className="text-sm">
+                          {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No Date'}
+                        </span>
+                      </div>
+                      <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+                        <select
+                          className="p-2 border rounded-md text-sm focus:outline-none"
+                          value={task.status}
+                          onChange={(e) =>
+                            handleStatusChange(task.id, e.target.value as 'Pending' | 'In Progress' | 'Completed')
+                          }
+                          style={{ backgroundColor: themeStyles.backgroundColor, color: themeStyles.foregroundColor, borderColor: themeStyles.foregroundColor }}
+                        >
+                          <option value="Pending">Pending</option>
+                          <option value="In Progress">In Progress</option>
+                          <option value="Completed">Completed</option>
+                        </select>
+                        <button
+                          onClick={() => handleDeleteTask(task.id)}
+                          className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-md text-sm transition"
+                          style={{ backgroundColor: isbgDark === 'dark' ? '#dc2626' : '#ef4444' }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
